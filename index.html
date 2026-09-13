@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>消消乐</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+.screen {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+}
+
+.hidden { display: none !important; }
+
+/* Start Screen */
+#startScreen { gap: 20px; }
+
+#startScreen h1 {
+  font-size: 52px;
+  color: #fff;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+#startScreen .subtitle {
+  color: rgba(255,255,255,0.85);
+  font-size: 18px;
+  text-align: center;
+}
+
+.best-score {
+  color: #FFE66D;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.btn {
+  padding: 14px 36px;
+  border: none;
+  border-radius: 30px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  color: #fff;
+}
+
+.btn:active { transform: scale(0.93); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 4px 15px rgba(245,87,108,0.4);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  box-shadow: 0 4px 15px rgba(79,172,254,0.4);
+}
+
+/* Game Screen */
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px 18px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.score, .moves {
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.score span, .moves span {
+  color: #FFE66D;
+  font-size: 24px;
+}
+
+.board {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  gap: 3px;
+  padding: 6px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 14px;
+  touch-action: none;
+}
+
+.cell {
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(18px, 5.5vw, 30px);
+  cursor: pointer;
+  transition: transform 0.15s;
+  position: relative;
+}
+
+.cell:active { transform: scale(0.9); }
+
+.cell.selected {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 3px #fff, 0 0 12px rgba(255,255,255,0.9);
+  z-index: 2;
+}
+
+.cell.matching {
+  animation: pop 0.3s ease-out forwards;
+  z-index: 3;
+}
+
+.cell.new-tile {
+  animation: dropIn 0.35s ease-out;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+@keyframes dropIn {
+  0% { transform: translateY(-150%); opacity: 0; }
+  60% { transform: translateY(8%); opacity: 1; }
+  100% { transform: translateY(0); }
+}
+
+.tile-0 { background: #FF5252; }
+.tile-1 { background: #448AFF; }
+.tile-2 { background: #69F0AE; }
+.tile-3 { background: #FFD740; }
+.tile-4 { background: #E040FB; }
+.tile-5 { background: #FF6E40; }
+
+.cell.has-image {
+  background-size: cover !important;
+  background-position: center;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+
+.controls {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.controls .btn {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 16px;
+}
+
+.combo-text {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 42px;
+  font-weight: bold;
+  color: #FFE66D;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+  pointer-events: none;
+  z-index: 50;
+  animation: comboFlash 0.8s ease-out forwards;
+}
+
+@keyframes comboFlash {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  30% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -80%) scale(1); opacity: 0; }
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-content h2 {
+  color: #333;
+  text-align: center;
+}
+
+.modal-content p {
+  color: #888;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.upload-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.upload-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.slot-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  border: 2px solid #eee;
+  background-size: cover;
+  background-position: center;
+}
+
+.slot-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #fff;
+  background: #4facfe;
+}
+
+.slot-btn.clear { background: #f5576c; }
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-actions .btn { flex: 1; }
+
+.final-score-display {
+  font-size: 52px;
+  font-weight: bold;
+  color: #f5576c;
+  text-align: center;
+}
+
+.new-record {
+  text-align: center;
+  color: #f5576c;
+  font-weight: bold;
+  font-size: 18px;
+}
+</style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div id="startScreen" class="screen">
+  <h1>消消乐</h1>
+  <p class="subtitle">消除三个或以上相同的图案<br>支持上传自定义图片</p>
+  <p class="best-score" id="startBestScore"></p>
+  <button class="btn btn-primary" id="startBtn">🎮 开始游戏</button>
+  <button class="btn btn-secondary" id="startUploadBtn">🖼️ 上传图片</button>
+</div>
+
+<!-- Game Screen -->
+<div id="gameScreen" class="screen hidden">
+  <div class="header">
+    <div class="score">分数 <span id="score">0</span></div>
+    <div class="moves">步数 <span id="moves">30</span></div>
+  </div>
+  <div id="board" class="board"></div>
+  <div class="controls">
+    <button class="btn btn-secondary" id="gameUploadBtn">🖼️ 换图</button>
+    <button class="btn btn-primary" id="restartBtn">🔄 重玩</button>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>上传自定义图片</h2>
+    <p>为每种方块上传一张图片（最多6张）<br>未上传的将使用默认水果图案<br>建议使用正方形图片，效果最佳</p>
+    <div class="upload-slots" id="uploadSlots"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="resetImagesBtn">恢复默认</button>
+      <button class="btn btn-primary" id="closeUploadBtn">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- Game Over Modal -->
+<div id="gameOverModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="gameOverTitle">游戏结束</h2>
+    <p>最终分数</p>
+    <div class="final-score-display" id="finalScore">0</div>
+    <p class="new-record hidden" id="newRecord">🎉 新纪录！</p>
+    <p>最高分: <span id="bestScoreDisplay">0</span></p>
+    <button class="btn btn-primary" id="playAgainBtn">再玩一次</button>
+  </div>
+</div>
+
+<script>
+// ========== Configuration ==========
+const GRID_SIZE = 8;
+const TILE_TYPES = 6;
+const MAX_MOVES = 30;
+const DEFAULT_EMOJIS = ['🍎', '🍇', '🍊', '🍋', '🍓', '🍒'];
+const TILE_COLORS = ['#FF5252', '#448AFF', '#69F0AE', '#FFD740', '#E040FB', '#FF6E40'];
+
+// ========== Game State ==========
+let grid = [];
+let score = 0;
+let movesLeft = MAX_MOVES;
+let selected = null;
+let isProcessing = false;
+let gameOver = false;
+let userImages = [null, null, null, null, null, null];
+let comboMultiplier = 1;
+let bestScore = 0;
+
+// ========== DOM ==========
+const startScreen = document.getElementById('startScreen');
+const gameScreen = document.getElementById('gameScreen');
+const board = document.getElementById('board');
+const scoreEl = document.getElementById('score');
+const movesEl = document.getElementById('moves');
+const uploadModal = document.getElementById('uploadModal');
+const gameOverModal = document.getElementById('gameOverModal');
+const finalScoreEl = document.getElementById('finalScore');
+const uploadSlots = document.getElementById('uploadSlots');
+const startBestScoreEl = document.getElementById('startBestScore');
+const bestScoreDisplay = document.getElementById('bestScoreDisplay');
+const newRecordEl = document.getElementById('newRecord');
+
+// ========== Storage ==========
+function loadImages() {
+  try {
+    const saved = localStorage.getItem('xxl_images');
+    if (saved) userImages = JSON.parse(saved);
+  } catch(e) {}
+}
+
+function saveImages() {
+  try {
+    localStorage.setItem('xxl_images', JSON.stringify(userImages));
+  } catch(e) {
+    alert('存储空间不足，请使用较小的图片或清除已上传的图片。');
+  }
+}
+
+function loadBestScore() {
+  bestScore = parseInt(localStorage.getItem('xxl_best') || '0');
+}
+
+function saveBestScore() {
+  localStorage.setItem('xxl_best', bestScore.toString());
+}
+
+// ========== Utility ==========
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function randomTileType() {
+  return Math.floor(Math.random() * TILE_TYPES);
+}
+
+// ========== Grid Logic ==========
+function initGrid() {
+  grid = [];
+  for (let r = 0; r < GRID_SIZE; r++) {
+    grid[r] = [];
+    for (let c = 0; c < GRID_SIZE; c++) {
+      let type;
+      let attempts = 0;
+      do {
+        type = randomTileType();
+        attempts++;
+      } while (
+        attempts < 50 && (
+        (c >= 2 && grid[r][c-1] === type && grid[r][c-2] === type) ||
+        (r >= 2 && grid[r-1][c] === type && grid[r-2][c] === type))
+      );
+      grid[r][c] = type;
+    }
+  }
+  if (!hasPossibleMoves()) initGrid();
+}
+
+function swapTiles(r1, c1, r2, c2) {
+  const temp = grid[r1][c1];
+  grid[r1][c1] = grid[r2][c2];
+  grid[r2][c2] = temp;
+}
+
+function findMatches() {
+  const matched = new Set();
+  // Horizontal
+  for (let r = 0; r < GRID_SIZE; r++) {
+    let count = 1;
+    for (let c = 1; c < GRID_SIZE; c++) {
+      if (grid[r][c] !== null && grid[r][c] === grid[r][c-1]) {
+        count++;
+      } else {
+        if (count >= 3) {
+          for (let k = 0; k < count; k++) matched.add(`${r},${c-1-k}`);
+        }
+        count = 1;
+      }
+    }
+    if (count >= 3) {
+      for (let k = 0; k < count; k++) matched.add(`${r},${GRID_SIZE-1-k}`);
+    }
+  }
+  // Vertical
+  for (let c = 0; c < GRID_SIZE; c++) {
+    let count = 1;
+    for (let r = 1; r < GRID_SIZE; r++) {
+      if (grid[r][c] !== null && grid[r][c] === grid[r-1][c]) {
+        count++;
+      } else {
+        if (count >= 3) {
+          for (let k = 0; k < count; k++) matched.add(`${r-1-k},${c}`);
+        }
+        count = 1;
+      }
+    }
+    if (count >= 3) {
+      for (let k = 0; k < count; k++) matched.add(`${GRID_SIZE-1-k},${c}`);
+    }
+  }
+  return Array.from(matched).map(s => s.split(',').map(Number));
+}
+
+function applyGravity() {
+  const newTiles = [];
+  for (let c = 0; c < GRID_SIZE; c++) {
+    let writeRow = GRID_SIZE - 1;
+    for (let r = GRID_SIZE - 1; r >= 0; r--) {
+      if (grid[r][c] !== null) {
+        grid[writeRow][c] = grid[r][c];
+        if (writeRow !== r) grid[r][c] = null;
+        writeRow--;
+      }
+    }
+    for (let r = writeRow; r >= 0; r--) {
+      grid[r][c] = randomTileType();
+      newTiles.push(`${r},${c}`);
+    }
+  }
+  return newTiles;
+}
+
+function hasPossibleMoves() {
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (c < GRID_SIZE - 1) {
+        swapTiles(r, c, r, c+1);
+        const has = findMatches().length > 0;
+        swapTiles(r, c, r, c+1);
+        if (has) return true;
+      }
+      if (r < GRID_SIZE - 1) {
+        swapTiles(r, c, r+1, c);
+        const has = findMatches().length > 0;
+        swapTiles(r, c, r+1, c);
+        if (has) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function shuffleBoard() {
+  const tiles = [];
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      tiles.push(grid[r][c]);
+  for (let i = tiles.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+  }
+  let idx = 0;
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      grid[r][c] = tiles[idx++];
+  if (!hasPossibleMoves()) initGrid();
+}
+
+// ========== Rendering ==========
+function render(newTiles = []) {
+  board.innerHTML = '';
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      const type = grid[r][c];
+      if (type !== null) {
+        cell.classList.add(`tile-${type}`);
+        if (userImages[type]) {
+          cell.classList.add('has-image');
+          cell.style.backgroundImage = `url(${userImages[type]})`;
+        } else {
+          cell.textContent = DEFAULT_EMOJIS[type];
+        }
+      }
+      if (selected && selected.row === r && selected.col === c) {
+        cell.classList.add('selected');
+      }
+      if (newTiles.includes(`${r},${c}`)) {
+        cell.classList.add('new-tile');
+      }
+      board.appendChild(cell);
+    }
+  }
+}
+
+function updateHeader() {
+  scoreEl.textContent = score;
+  movesEl.textContent = movesLeft;
+}
+
+function showCombo(text) {
+  const el = document.createElement('div');
+  el.className = 'combo-text';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
+
+// ========== Game Flow ==========
+async function processMatches() {
+  let matches = findMatches();
+  while (matches.length > 0) {
+    matches.forEach(([r, c]) => {
+      const cell = board.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+      if (cell) cell.classList.add('matching');
+    });
+    await wait(300);
+
+    matches.forEach(([r, c]) => { grid[r][c] = null; });
+    const points = matches.length * 10 * comboMultiplier;
+    score += points;
+    updateHeader();
+
+    if (comboMultiplier > 1) {
+      showCombo(`${comboMultiplier}连击!`);
+    }
+
+    const newTiles = applyGravity();
+    render(newTiles);
+    await wait(350);
+
+    comboMultiplier++;
+    matches = findMatches();
+  }
+}
+
+async function trySwap(r1, c1, r2, c2) {
+  if (isProcessing || gameOver) return;
+  if (r2 < 0 || r2 >= GRID_SIZE || c2 < 0 || c2 >= GRID_SIZE) return;
+
+  isProcessing = true;
+  swapTiles(r1, c1, r2, c2);
+  render();
+  await wait(180);
+
+  const matches = findMatches();
+  if (matches.length > 0) {
+    movesLeft--;
+    updateHeader();
+    comboMultiplier = 1;
+    await processMatches();
+
+    if (!hasPossibleMoves()) {
+      shuffleBoard();
+      render();
+      await wait(300);
+    }
+
+    if (movesLeft <= 0) {
+      endGame();
+    }
+  } else {
+    swapTiles(r1, c1, r2, c2);
+    render();
+  }
+
+  selected = null;
+  isProcessing = false;
+}
+
+function endGame() {
+  gameOver = true;
+  finalScoreEl.textContent = score;
+  bestScoreDisplay.textContent = Math.max(bestScore, score);
+  if (score > bestScore) {
+    bestScore = score;
+    saveBestScore();
+    newRecordEl.classList.remove('hidden');
+  } else {
+    newRecordEl.classList.add('hidden');
+  }
+  gameOverModal.classList.remove('hidden');
+}
+
+function startGame() {
+  score = 0;
+  movesLeft = MAX_MOVES;
+  selected = null;
+  isProcessing = false;
+  gameOver = false;
+  comboMultiplier = 1;
+  initGrid();
+  render();
+  updateHeader();
+  startScreen.classList.add('hidden');
+  gameOverModal.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+}
+
+// ========== Interaction (Touch + Mouse) ==========
+let touchStart = null;
+
+function getCellFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el ? el.closest('.cell') : null;
+}
+
+function handleInteraction(endX, endY) {
+  if (!touchStart || isProcessing || gameOver) {
+    touchStart = null;
+    return;
+  }
+  const dx = endX - touchStart.x;
+  const dy = endY - touchStart.y;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  const duration = Date.now() - touchStart.time;
+
+  if (absDx < 20 && absDy < 20 && duration < 400) {
+    // Tap
+    const { row, col } = touchStart;
+    if (selected) {
+      if (selected.row === row && selected.col === col) {
+        selected = null;
+        render();
+      } else if (Math.abs(selected.row - row) + Math.abs(selected.col - col) === 1) {
+        const r1 = selected.row, c1 = selected.col;
+        selected = null;
+        trySwap(r1, c1, row, col);
+      } else {
+        selected = { row, col };
+        render();
+      }
+    } else {
+      selected = { row, col };
+      render();
+    }
+  } else if (absDx >= 20 || absDy >= 20) {
+    // Swipe
+    let targetRow = touchStart.row;
+    let targetCol = touchStart.col;
+    if (absDx > absDy) {
+      targetCol += dx > 0 ? 1 : -1;
+    } else {
+      targetRow += dy > 0 ? 1 : -1;
+    }
+    selected = null;
+    trySwap(touchStart.row, touchStart.col, targetRow, targetCol);
+  }
+  touchStart = null;
+}
+
+// Touch events
+board.addEventListener('touchstart', (e) => {
+  if (isProcessing || gameOver) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const cell = getCellFromPoint(touch.clientX, touch.clientY);
+  if (!cell) return;
+  touchStart = {
+    row: parseInt(cell.dataset.row),
+    col: parseInt(cell.dataset.col),
+    x: touch.clientX,
+    y: touch.clientY,
+    time: Date.now()
+  };
+}, { passive: false });
+
+board.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('touchend', (e) => {
+  if (!touchStart) return;
+  const touch = e.changedTouches[0];
+  handleInteraction(touch.clientX, touch.clientY);
+}, { passive: false });
+
+// Mouse events (desktop)
+let mouseStart = null;
+board.addEventListener('mousedown', (e) => {
+  if (isProcessing || gameOver) return;
+  const cell = e.target.closest('.cell');
+  if (!cell) return;
+  mouseStart = {
+    row: parseInt(cell.dataset.row),
+    col: parseInt(cell.dataset.col),
+    x: e.clientX,
+    y: e.clientY,
+    time: Date.now()
+  };
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (!mouseStart) return;
+  touchStart = mouseStart;
+  handleInteraction(e.clientX, e.clientY);
+  mouseStart = null;
+});
+
+// ========== Image Upload ==========
+function renderUploadSlots() {
+  uploadSlots.innerHTML = '';
+  for (let i = 0; i < TILE_TYPES; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'upload-slot';
+
+    const preview = document.createElement('div');
+    preview.className = 'slot-preview';
+    preview.style.background = TILE_COLORS[i];
+    if (userImages[i]) {
+      preview.style.backgroundImage = `url(${userImages[i]})`;
+      preview.style.backgroundSize = 'cover';
+      preview.textContent = '';
+    } else {
+      preview.textContent = DEFAULT_EMOJIS[i];
+    }
+
+    const uploadBtn = document.createElement('button');
+    uploadBtn.className = 'slot-btn';
+    uploadBtn.textContent = '上传';
+    uploadBtn.onclick = () => uploadImage(i);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'slot-btn clear';
+    clearBtn.textContent = '清除';
+    clearBtn.onclick = () => {
+      userImages[i] = null;
+      saveImages();
+      renderUploadSlots();
+      if (!gameScreen.classList.contains('hidden')) render();
+    };
+
+    slot.appendChild(preview);
+    slot.appendChild(uploadBtn);
+    slot.appendChild(clearBtn);
+    uploadSlots.appendChild(slot);
+  }
+}
+
+function uploadImage(index) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('图片太大，请选择小于5MB的图片。');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      compressImage(ev.target.result, 220).then(dataUrl => {
+        userImages[index] = dataUrl;
+        saveImages();
+        renderUploadSlots();
+        if (!gameScreen.classList.contains('hidden')) render();
+      }).catch(() => {
+        userImages[index] = ev.target.result;
+        saveImages();
+        renderUploadSlots();
+        if (!gameScreen.classList.contains('hidden')) render();
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function compressImage(dataUrl, maxSize) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      // Crop to square center
+      const minDim = Math.min(width, height);
+      const sx = (width - minDim) / 2;
+      const sy = (height - minDim) / 2;
+      if (minDim > maxSize) {
+        width = maxSize;
+        height = maxSize;
+      } else {
+        width = minDim;
+        height = minDim;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+// ========== Event Listeners ==========
+document.getElementById('startBtn').onclick = startGame;
+document.getElementById('startUploadBtn').onclick = () => {
+  renderUploadSlots();
+  uploadModal.classList.remove('hidden');
+};
+document.getElementById('gameUploadBtn').onclick = () => {
+  renderUploadSlots();
+  uploadModal.classList.remove('hidden');
+};
+document.getElementById('restartBtn').onclick = startGame;
+document.getElementById('playAgainBtn').onclick = startGame;
+document.getElementById('closeUploadBtn').onclick = () => {
+  uploadModal.classList.add('hidden');
+  if (!gameScreen.classList.contains('hidden')) render();
+};
+document.getElementById('resetImagesBtn').onclick = () => {
+  userImages = [null, null, null, null, null, null];
+  saveImages();
+  renderUploadSlots();
+  if (!gameScreen.classList.contains('hidden')) render();
+};
+
+// ========== Init ==========
+loadImages();
+loadBestScore();
+if (bestScore > 0) {
+  startBestScoreEl.textContent = `🏆 最高分: ${bestScore}`;
+}
+</script>
+</body>
+</html>
