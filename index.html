@@ -116,9 +116,9 @@ body {
 
 .board {
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 6 / 7;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   grid-template-rows: repeat(7, 1fr);
   gap: 2px;
   padding: 3px;
@@ -361,7 +361,8 @@ body {
 
 <script>
 // ========== Configuration ==========
-const GRID_SIZE = 7;
+const ROWS = 7;
+const COLS = 6;
 const TILE_TYPES = 6;
 const MAX_MOVES = 30;
 const DEFAULT_EMOJIS = ['🍎', '🍇', '🍊', '🍋', '🍓', '🍒'];
@@ -439,9 +440,9 @@ function randomTileType() {
 // ========== Grid Logic ==========
 function initGrid() {
   grid = [];
-  for (let r = 0; r < GRID_SIZE; r++) {
+  for (let r = 0; r < ROWS; r++) {
     grid[r] = [];
-    for (let c = 0; c < GRID_SIZE; c++) {
+    for (let c = 0; c < COLS; c++) {
       let type;
       let attempts = 0;
       do {
@@ -467,9 +468,9 @@ function swapTiles(r1, c1, r2, c2) {
 function findMatches() {
   const matched = new Set();
   // Horizontal
-  for (let r = 0; r < GRID_SIZE; r++) {
+  for (let r = 0; r < ROWS; r++) {
     let count = 1;
-    for (let c = 1; c < GRID_SIZE; c++) {
+    for (let c = 1; c < COLS; c++) {
       if (grid[r][c] !== null && grid[r][c] === grid[r][c-1]) {
         count++;
       } else {
@@ -480,13 +481,13 @@ function findMatches() {
       }
     }
     if (count >= 3) {
-      for (let k = 0; k < count; k++) matched.add(`${r},${GRID_SIZE-1-k}`);
+      for (let k = 0; k < count; k++) matched.add(`${r},${COLS-1-k}`);
     }
   }
   // Vertical
-  for (let c = 0; c < GRID_SIZE; c++) {
+  for (let c = 0; c < COLS; c++) {
     let count = 1;
-    for (let r = 1; r < GRID_SIZE; r++) {
+    for (let r = 1; r < ROWS; r++) {
       if (grid[r][c] !== null && grid[r][c] === grid[r-1][c]) {
         count++;
       } else {
@@ -497,7 +498,7 @@ function findMatches() {
       }
     }
     if (count >= 3) {
-      for (let k = 0; k < count; k++) matched.add(`${GRID_SIZE-1-k},${c}`);
+      for (let k = 0; k < count; k++) matched.add(`${ROWS-1-k},${c}`);
     }
   }
   return Array.from(matched).map(s => s.split(',').map(Number));
@@ -505,9 +506,9 @@ function findMatches() {
 
 function applyGravity() {
   const newTiles = [];
-  for (let c = 0; c < GRID_SIZE; c++) {
-    let writeRow = GRID_SIZE - 1;
-    for (let r = GRID_SIZE - 1; r >= 0; r--) {
+  for (let c = 0; c < COLS; c++) {
+    let writeRow = ROWS - 1;
+    for (let r = ROWS - 1; r >= 0; r--) {
       if (grid[r][c] !== null) {
         grid[writeRow][c] = grid[r][c];
         if (writeRow !== r) grid[r][c] = null;
@@ -523,15 +524,15 @@ function applyGravity() {
 }
 
 function hasPossibleMoves() {
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      if (c < GRID_SIZE - 1) {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (c < COLS - 1) {
         swapTiles(r, c, r, c+1);
         const has = findMatches().length > 0;
         swapTiles(r, c, r, c+1);
         if (has) return true;
       }
-      if (r < GRID_SIZE - 1) {
+      if (r < ROWS - 1) {
         swapTiles(r, c, r+1, c);
         const has = findMatches().length > 0;
         swapTiles(r, c, r+1, c);
@@ -544,16 +545,16 @@ function hasPossibleMoves() {
 
 function shuffleBoard() {
   const tiles = [];
-  for (let r = 0; r < GRID_SIZE; r++)
-    for (let c = 0; c < GRID_SIZE; c++)
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
       tiles.push(grid[r][c]);
   for (let i = tiles.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
   }
   let idx = 0;
-  for (let r = 0; r < GRID_SIZE; r++)
-    for (let c = 0; c < GRID_SIZE; c++)
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
       grid[r][c] = tiles[idx++];
   if (!hasPossibleMoves()) initGrid();
 }
@@ -561,8 +562,8 @@ function shuffleBoard() {
 // ========== Rendering ==========
 function render(newTiles = []) {
   board.innerHTML = '';
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.dataset.row = r;
@@ -631,7 +632,7 @@ async function processMatches() {
 
 async function trySwap(r1, c1, r2, c2) {
   if (isProcessing || gameOver) return;
-  if (r2 < 0 || r2 >= GRID_SIZE || c2 < 0 || c2 >= GRID_SIZE) return;
+  if (r2 < 0 || r2 >= ROWS || c2 < 0 || c2 >= COLS) return;
 
   isProcessing = true;
   swapTiles(r1, c1, r2, c2);
